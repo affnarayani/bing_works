@@ -4,16 +4,16 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="bing_works",
-    version="1.0.0",
-    author="Ujjawal",
-    author_email="",
-    description="bing_works is an unofficial async API wrapper for Bing Image & Video Creator",
+    name="bingart",
+    version="1.5.1",
+    author="Maehdakvan",
+    author_email="visitanimation@google.com",
+    description="bingart is an unofficial async API wrapper for Bing Image & Video Creator",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/Ujjawal/bing_works",
+    url="https://github.com/DedInc/bingart",
     project_urls={
-        "Bug Tracker": "https://github.com/Ujjawal/bing_works/issues",
+        "Bug Tracker": "https://github.com/DedInc/bingart/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
