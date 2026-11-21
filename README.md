@@ -7,9 +7,8 @@
 ## Features
 
 - Fully asynchronous — built on `curl_cffi` and `asyncio`
-- Generate images using DALL-E, GPT-4O, and MAI1 models
-- Generate videos from text prompts
-- Custom aspect ratios: Square (1:1), Landscape (7:4), Portrait (4:7)
+- Generate images using the **MAI-Image-2.6-Flash** model
+- 3 aspect ratios: Square (1:1), Vertical (2:3), Horizontal (3:2)
 - Get up to 4 image URLs per request
 - Flexible authentication via `_U` cookie or auto-fetch from browsers
 - Enhanced prompts with AI-improved versions
@@ -58,34 +57,17 @@ async def main():
     async with BingArt(auth_cookie_U='your_cookie_value') as bing:
         result = await bing.generate(
             'a futuristic cityscape',
-            model=Model.GPT4O,
-            aspect=Aspect.PORTRAIT
+            model=Model.MAI_IMAGE_2_6_FLASH,
+            aspect=Aspect.VERTICAL
         )
         print(result)
 
 asyncio.run(main())
 ```
 
-**Models:** `Model.DALLE`, `Model.GPT4O`, `Model.MAI1`
+**Model:** `Model.MAI_IMAGE_2_6_FLASH` (only model)
 
-**Aspects:** `Aspect.SQUARE`, `Aspect.LANDSCAPE`, `Aspect.PORTRAIT`
-
-## Video Generation
-
-```python
-import asyncio
-from bing_works import BingArt
-
-async def main():
-    async with BingArt(auth_cookie_U='your_cookie_value') as bing:
-        result = await bing.generate(
-            'a dancing robot in a futuristic city',
-            content_type='video'
-        )
-        print(result)
-
-asyncio.run(main())
-```
+**Aspects:** `Aspect.SQUARE` (1:1), `Aspect.VERTICAL` (2:3), `Aspect.HORIZONTAL` (3:2)
 
 ## Exceptions
 

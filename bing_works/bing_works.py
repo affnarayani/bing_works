@@ -12,7 +12,6 @@ BING_ORIGIN = "https://www.bing.com"
 IMAGE_HOST = "https://th.bing.com"
 
 POLL_INTERVAL = 5
-POLL_INTERVAL_GPT4O = 3
 
 BROWSERS = ["chrome", "edge", "firefox", "brave", "opera", "vivaldi", "chromium"]
 
@@ -23,10 +22,9 @@ REJECTION_MARKERS = [
 ]
 
 AUTH_MARKER = 'id="id_a" style="display:none"'
-GPT4O_STREAMING_MARKER = "imgri-inner-container strm"
 
-MODEL_BODY_MAP = {0: "dalle", 1: "gpt4o", 4: "maiimage1"}
-ASPECT_BODY_MAP = {1: "1:1", 2: "7:4", 3: "4:7"}
+MODEL_BODY_MAP = {0: "mai-image-2.6-flash"}
+ASPECT_BODY_MAP = {1: "1:1", 2: "2:3", 3: "3:2"}
 
 RE_IG = re.compile(r'IG:"([^"]+)"')
 RE_SALT = re.compile(r'Salt:"([^"]+)"')
@@ -36,19 +34,16 @@ RE_ALT = re.compile(r'<img[^>]*class="image-row-img[^"]*"[^>]*alt="([^"]+)"')
 RE_SRC_FULL_OIG = re.compile(r'src="(https://th\.bing\.com/th/id/OIG[^"]+)"')
 RE_SRC_REL_OIG = re.compile(r'src="(/th/id/OIG[^"]+)"')
 RE_SRC_ANY = re.compile(r'src="([^"]+)"')
-RE_VIDEO_URL = re.compile(r'ourl="([^"]+)"')
 
 
 class Model(Enum):
-    DALLE = 0
-    GPT4O = 1
-    MAI1 = 4
+    MAI_IMAGE_2_6_FLASH = 0
 
 
 class Aspect(Enum):
     SQUARE = 1
-    LANDSCAPE = 2
-    PORTRAIT = 3
+    VERTICAL = 2
+    HORIZONTAL = 3
 
 
 class AuthCookieError(Exception):
@@ -82,10 +77,7 @@ def _extract_enhanced_prompt(html):
 
 
 def _extract_image_urls(html, model_value):
-    if model_value == Model.GPT4O.value:
-        src_urls = RE_SRC_FULL_OIG.findall(html) or RE_SRC_REL_OIG.findall(html)
-    else:
-        src_urls = RE_SRC_ANY.findall(html)
+    src_urls = RE_SRC_ANY.findall(html)
 
     images = []
     for src_url in src_urls:
@@ -145,9 +137,6 @@ class BingArt:
 
     async def _poll_images(self, query, request_id, model):
         mdl_value = model.value if isinstance(model, Model) else model
-        interval = (
-            POLL_INTERVAL_GPT4O if mdl_value == Model.GPT4O.value else POLL_INTERVAL
-        )
         encoded = urlencode({"q": query})
 
         while True:
@@ -156,14 +145,7 @@ class BingArt:
             _check_prompt_rejected(response.text)
 
             if "text/css" not in response.text:
-                await asyncio.sleep(interval)
-                continue
-
-            if (
-                mdl_value == Model.GPT4O.value
-                and GPT4O_STREAMING_MARKER in response.text
-            ):
-                await asyncio.sleep(interval)
+                await asyncio.sleep(POLL_INTERVAL)
                 continue
 
             images = _extract_image_urls(response.text, mdl_value)
@@ -173,61 +155,20 @@ class BingArt:
                     "enhanced_prompt": _extract_enhanced_prompt(response.text),
                 }
 
-            await asyncio.sleep(interval)
-
-    async def _poll_video(self, query, request_id):
-        encoded = urlencode({"q": query})
-
-        while True:
-            url = f"{BASE_URL}/async/results/{request_id}?{encoded}&IG={self.IG}&ctype=video&sm=1&girftp=1"
-            response = await self.session.get(url)
-            _check_prompt_rejected(response.text)
-
-            if "errorMessage" in response.text and "Pending" in response.text:
-                await asyncio.sleep(POLL_INTERVAL)
-                continue
-
-            if "showContent" in response.text:
-                try:
-                    data = response.json()
-                    if data.get("showContent"):
-                        return {"video_url": data["showContent"]}
-                except Exception:
-                    pass
-
-            match = RE_VIDEO_URL.search(response.text)
-            if match:
-                return {"video_url": match.group(1)}
-
             await asyncio.sleep(POLL_INTERVAL)
 
-    def _build_params_and_payload(self, query, mdl_value, ar_value, content_type):
+    def _build_params_and_payload(self, query, mdl_value, ar_value):
         params = {"q": query, "FORM": "GENCRE"}
         if self.IG:
             params["IG"] = self.IG
 
-        if content_type == "video":
-            self.session.headers["referer"] = f"{BASE_URL}?ctype=video"
-            params.update(
-                {
-                    "rt": "3",
-                    "mdl": "0",
-                    "ar": "1",
-                    "ctype": "video",
-                    "pt": "3",
-                    "sm": "0",
-                }
-            )
-            payload = {"q": query, "model": "dalle", "aspectRatio": "1:1"}
-        else:
-            self.session.headers["referer"] = BASE_URL
-            rt_value = "3" if mdl_value == 0 else "4"
-            params.update({"rt": rt_value, "mdl": str(mdl_value), "ar": str(ar_value)})
-            payload = {
-                "q": query,
-                "model": MODEL_BODY_MAP.get(mdl_value, "dalle"),
-                "aspectRatio": ASPECT_BODY_MAP.get(ar_value, "1:1"),
-            }
+        self.session.headers["referer"] = BASE_URL
+        params.update({"rt": "4", "mdl": str(mdl_value), "ar": str(ar_value)})
+        payload = {
+            "q": query,
+            "model": MODEL_BODY_MAP.get(mdl_value, "mai-image-2.6-flash"),
+            "aspectRatio": ASPECT_BODY_MAP.get(ar_value, "1:1"),
+        }
 
         return params, payload
 
@@ -251,23 +192,15 @@ class BingArt:
 
         return id_match.group(1)
 
-    async def generate(
-        self, query, model=Model.DALLE, aspect=Aspect.SQUARE, content_type="image"
-    ):
+    async def generate(self, query, model=Model.MAI_IMAGE_2_6_FLASH, aspect=Aspect.SQUARE):
         if self.IG is None:
             await self._fetch_config()
 
         mdl_value = model.value if isinstance(model, Model) else model
         ar_value = aspect.value if isinstance(aspect, Aspect) else aspect
 
-        params, payload = self._build_params_and_payload(
-            query, mdl_value, ar_value, content_type
-        )
+        params, payload = self._build_params_and_payload(query, mdl_value, ar_value)
         request_id = await self._submit_creation(params, payload)
-
-        if content_type == "video":
-            result = await self._poll_video(query, request_id)
-            return {"video": result, "prompt": query}
 
         result = await self._poll_images(query, request_id, model)
         prompt = result.get("enhanced_prompt") or query
