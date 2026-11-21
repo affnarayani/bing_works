@@ -24,7 +24,7 @@ REJECTION_MARKERS = [
 AUTH_MARKER = 'id="id_a" style="display:none"'
 
 MODEL_BODY_MAP = {0: "mai-image-2.6-flash"}
-ASPECT_BODY_MAP = {1: "1:1", 2: "3:2", 3: "2:3"}
+ASPECT_BODY_MAP = {1: "1:1", 2: "2:3", 3: "3:2"}
 
 RE_IG = re.compile(r'IG:"([^"]+)"')
 RE_SALT = re.compile(r'Salt:"([^"]+)"')
