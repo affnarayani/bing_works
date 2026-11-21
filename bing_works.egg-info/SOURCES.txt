@@ -1,0 +1,11 @@
+LICENSE
+MANIFEST.in
+README.md
+setup.py
+bing_works/__init__.py
+bing_works/bing_works.py
+bing_works.egg-info/PKG-INFO
+bing_works.egg-info/SOURCES.txt
+bing_works.egg-info/dependency_links.txt
+bing_works.egg-info/requires.txt
+bing_works.egg-info/top_level.txt
